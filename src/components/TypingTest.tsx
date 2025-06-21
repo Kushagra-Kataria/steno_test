@@ -1,11 +1,20 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
 
 interface Test {
   id: string;
@@ -27,7 +36,7 @@ interface TypingTestProps {
 
 const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, onExit }) => {
   const [typedText, setTypedText] = useState('');
-  const [timeRemaining, setTimeRemaining] = useState(test.duration * 60); // Convert to seconds
+  const [timeRemaining, setTimeRemaining] = useState(test.duration * 60); // seconds
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [isTestStarted, setIsTestStarted] = useState(false);
   const [wpm, setWpm] = useState(0);
@@ -45,7 +54,6 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
           return prev - 1;
         });
       }, 1000);
-
       return () => clearInterval(timer);
     }
   }, [isTestStarted, timeRemaining]);
@@ -65,32 +73,40 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
   };
 
   const calculateWPMAndAccuracy = () => {
-    const timeElapsed = test.duration * 60 - timeRemaining; // in seconds
+    const timeElapsed = test.duration * 60 - timeRemaining; // seconds
     const timeInMinutes = timeElapsed / 60;
-    
-    // Calculate WPM (assuming average word length of 5 characters)
-    const wordCount = typedText.length / 5;
+
+    // WPM
+    const wordCount = typedText.trim().split(/\s+/).length;
     const currentWPM = timeInMinutes > 0 ? Math.round(wordCount / timeInMinutes) : 0;
     setWpm(currentWPM);
 
-    // Calculate accuracy (simple character-based accuracy)
-    // Since we don't show the reference text, we'll use a basic metric
-    // In a real implementation, this would compare against the dictated text
-    const currentAccuracy = Math.max(0, 100 - (typedText.split(' ').filter(word => word === '').length * 2));
-    setAccuracy(Math.min(100, currentAccuracy));
+    // Accuracy (word level)
+    const referenceWords = test.paragraph.trim().split(/\s+/);
+    const typedWords = typedText.trim().split(/\s+/);
+
+    let correctWords = 0;
+    for (let i = 0; i < typedWords.length; i++) {
+      if (typedWords[i] === referenceWords[i]) {
+        correctWords++;
+      }
+    }
+
+    const currentAccuracy = typedWords.length > 0 ? (correctWords / typedWords.length) * 100 : 100;
+    setAccuracy(Math.round(currentAccuracy));
   };
 
   const handleTestComplete = () => {
     const endTime = new Date();
     const timeTaken = startTime ? Math.round((endTime.getTime() - startTime.getTime()) / 1000) : test.duration * 60;
-    
+
     const results = {
       typedText,
       timeTaken,
       wpm,
       accuracy,
-      wordCount: typedText.split(' ').filter(word => word.trim() !== '').length,
-      characterCount: typedText.length,
+      wordCount: typedText.trim().split(/\s+/).filter(word => word !== '').length,
+      characterCount: typedText.length
     };
 
     onComplete(results);
@@ -109,14 +125,13 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
   };
 
   const getTimeRemainingColor = () => {
-    if (timeRemaining > 300) return 'text-green-600'; // > 5 minutes
-    if (timeRemaining > 60) return 'text-orange-600';  // > 1 minute
-    return 'text-red-600'; // < 1 minute
+    if (timeRemaining > 300) return 'text-green-600';
+    if (timeRemaining > 60) return 'text-orange-600';
+    return 'text-red-600';
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -135,10 +150,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="outline"
-                    className="border-red-500 text-red-500 hover:bg-red-50"
-                  >
+                  <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50">
                     Exit Test
                   </Button>
                 </AlertDialogTrigger>
@@ -151,10 +163,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Continue Test</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={onExit}
-                      className="bg-red-500 hover:bg-red-600"
-                    >
+                    <AlertDialogAction onClick={onExit} className="bg-red-500 hover:bg-red-600">
                       Exit Test
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -166,7 +175,6 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
       </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Progress Bar */}
         <Card className="mb-6">
           <CardContent className="p-4">
             <div className="flex justify-between items-center mb-2">
@@ -179,7 +187,6 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
           </CardContent>
         </Card>
 
-        {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <Card>
             <CardContent className="p-6 text-center">
@@ -201,7 +208,6 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
           </Card>
         </div>
 
-        {/* Typing Area */}
         <Card>
           <CardHeader className="bg-orange-500 text-white">
             <CardTitle className="flex justify-between items-center">
@@ -217,9 +223,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
             {!isTestStarted ? (
               <div className="text-center py-12">
                 <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    Instructions
-                  </h3>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Instructions</h3>
                   <div className="text-gray-600 space-y-2 max-w-2xl mx-auto">
                     <p>• The test will begin when you click "Start Test"</p>
                     <p>• Listen carefully to the dictation</p>
@@ -228,7 +232,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
                     <p>• Duration: {test.duration} minutes</p>
                   </div>
                 </div>
-                <Button 
+                <Button
                   onClick={handleStartTest}
                   className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 text-lg"
                 >
@@ -245,22 +249,24 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
                 <Textarea
                   ref={textareaRef}
                   value={typedText}
-                  onChange={(e) => setTypedText(e.target.value)}
+                  onChange={e => setTypedText(e.target.value)}
                   placeholder="Start typing here..."
                   className="min-h-[400px] text-lg leading-relaxed focus:ring-orange-500 focus:border-orange-500"
                   disabled={timeRemaining === 0}
                 />
                 <div className="flex justify-between items-center text-sm text-gray-500">
-                  <span>Words: {typedText.split(' ').filter(word => word.trim() !== '').length}</span>
+                  <span>
+                    Words: {typedText.trim().split(/\s+/).filter(word => word !== '').length}
+                  </span>
                   <span>Characters: {typedText.length}</span>
                 </div>
-                
+
                 {timeRemaining === 0 && (
                   <div className="text-center py-4">
                     <p className="text-lg font-semibold text-red-600 mb-4">
                       Time's up! Your test has been automatically submitted.
                     </p>
-                    <Button 
+                    <Button
                       onClick={handleTestComplete}
                       className="bg-green-500 hover:bg-green-600 text-white"
                     >
@@ -273,12 +279,11 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
           </CardContent>
         </Card>
 
-        {/* Manual Submit Button */}
         {isTestStarted && timeRemaining > 0 && (
           <div className="mt-6 text-center">
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button 
+                <Button
                   variant="outline"
                   className="border-green-500 text-green-500 hover:bg-green-50"
                 >
@@ -289,12 +294,13 @@ const TypingTest: React.FC<TypingTestProps> = ({ test, currentUser, onComplete, 
                 <AlertDialogHeader>
                   <AlertDialogTitle>Submit Test Early</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to submit your test? You still have {formatTime(timeRemaining)} remaining.
+                    Are you sure you want to submit your test? You still have{' '}
+                    {formatTime(timeRemaining)} remaining.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Continue Typing</AlertDialogCancel>
-                  <AlertDialogAction 
+                  <AlertDialogAction
                     onClick={handleTestComplete}
                     className="bg-green-500 hover:bg-green-600"
                   >
